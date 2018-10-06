@@ -37,7 +37,7 @@
 /* eslint-disable indent, no-unused-vars, no-multiple-empty-lines, max-nested-callbacks, space-before-function-paren, quotes, comma-spacing */
 'use strict';
 
-var precacheConfig = [["/index.html","f72d78590f8ca6dbfc375d978a2b4f03"],["/static/css/main.4f92ae8f.css","0a7b310516e3b6b1453da7525a08fd4b"],["/static/js/0.520f0993.chunk.js","46be429c0ac58a00f445cc35d951cf91"],["/static/js/1.dc367cb9.chunk.js","ab9d2072b685636639560b10133ca6ac"],["/static/js/2.494767f9.chunk.js","c9a8a9e2752597552dec3b29d7c3e653"],["/static/js/main.1933f5ac.js","a5fb059ca1bb7cba3730f1ba98ed39e0"]];
+var precacheConfig = [["/index.html","de7ab97ed75935d75483aba24feb0fbc"],["/static/css/main.4f92ae8f.css","0a7b310516e3b6b1453da7525a08fd4b"],["/static/js/0.faaae18a.chunk.js","a3a217b0d28465bc3559d2787e80b94c"],["/static/js/1.3fe14299.chunk.js","59e7f9208099cabc7b174e21d7e2662c"],["/static/js/2.9dad79d3.chunk.js","0c357e6ea79386176a969867d0c3b44e"],["/static/js/main.c28b282c.js","935fd9683bd4968c028ac5c5e58c2856"]];
 var cacheName = 'sw-precache-v3-sw-precache-webpack-plugin-' + (self.registration ? self.registration.scope : '');
 
 
@@ -209,22 +209,19 @@ self.addEventListener('activate', function(event) {
 
 self.addEventListener('fetch', function(event) {
   if (event.request.method === 'GET') {
-    // Should we call event.respondWith() inside this fetch event handler?
-    // This needs to be determined synchronously, which will give other fetch
-    // handlers a chance to handle the request if need be.
     var shouldRespond;
 
     // First, remove all the ignored parameters and hash fragment, and see if we
     // have that URL in our cache. If so, great! shouldRespond will be true.
     var url = stripIgnoredUrlParameters(event.request.url, ignoreUrlParametersMatching);
-    shouldRespond = urlsToCacheKeys.has(url);
+    shouldRespond = urlsToCacheKeys.has(url) || event.request.url.match(/\/posts/g);
 
     // If shouldRespond is false, check again, this time with 'index.html'
     // (or whatever the directoryIndex option is set to) at the end.
     var directoryIndex = 'index.html';
     if (!shouldRespond && directoryIndex) {
       url = addDirectoryIndex(url, directoryIndex);
-      shouldRespond = urlsToCacheKeys.has(url);
+      shouldRespond = urlsToCacheKeys.has(url) || event.request.url.match(/\/posts/g);
     }
 
     // If shouldRespond is still false, check to see if this is a navigation
@@ -235,19 +232,29 @@ self.addEventListener('fetch', function(event) {
         (event.request.mode === 'navigate') &&
         isPathWhitelisted(["^(?!\\/__).*"], event.request.url)) {
       url = new URL(navigateFallback, self.location).toString();
-      shouldRespond = urlsToCacheKeys.has(url);
+      shouldRespond = urlsToCacheKeys.has(url) || event.request.url.match(/\/posts/g);
     }
 
     // If shouldRespond was set to true at any point, then call
     // event.respondWith(), using the appropriate cache key.
     if (shouldRespond) {
+      const cacheUrl = event.request.url.match(/\/posts/g)
+        ? event.request
+        : urlsToCacheKeys.get(url)
+
       event.respondWith(
         caches.open(cacheName).then(function(cache) {
-          return cache.match(urlsToCacheKeys.get(url)).then(function(response) {
+          return cache.match(cacheUrl).then(function(response) {
             if (response) {
               return response;
             }
-            throw Error('The cached response that was expected is missing.');
+            console.log('Fetching request from the network');
+
+            return fetch(event.request).then(function (networkResponse) {
+              cache.put(event.request, networkResponse.clone());
+
+              return networkResponse;
+            });
           });
         }).catch(function(e) {
           // Fall back to just fetch()ing the request if some unexpected error

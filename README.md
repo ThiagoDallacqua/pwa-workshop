@@ -18,4 +18,4 @@
 
 - [Lazy loading](https://developers.google.com/web/fundamentals/performance/lazy-loading-guidance/images-and-video/)
 
-[Web performance com webpack](https://developers.google.com/web/fundamentals/performance/webpack/)
+- [Web performance com webpack](https://developers.google.com/web/fundamentals/performance/webpack/)

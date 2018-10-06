@@ -245,16 +245,14 @@ self.addEventListener('fetch', function(event) {
       event.respondWith(
         caches.open(cacheName).then(function(cache) {
           return cache.match(cacheUrl).then(function(response) {
-            if (response) {
-              return response;
-            }
-            console.log('Fetching request from the network');
-
-            return fetch(event.request).then(function (networkResponse) {
+            console.log(navigator.onLine)
+            return !navigator.onLine 
+            ? tryToFetchResponseFromCache(response)
+            : fetch(event.request).then(function (networkResponse) {
               cache.put(event.request, networkResponse.clone());
 
               return networkResponse;
-            });
+            })
           });
         }).catch(function(e) {
           // Fall back to just fetch()ing the request if some unexpected error
@@ -266,6 +264,14 @@ self.addEventListener('fetch', function(event) {
     }
   }
 });
+
+function tryToFetchResponseFromCache (response){
+  if (response) {
+    return response;
+  }
+
+  throw Error('The cached response that was expected is missing.');
+}
 
 
 // *** Start of auto-included sw-toolbox code. ***
